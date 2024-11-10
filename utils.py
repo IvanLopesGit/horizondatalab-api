@@ -5,7 +5,11 @@ from flask import jsonify
 def validate_file(file):
     try:
         # Mensagem padrão de sucesso
-        message = "Upload e validação realizados com sucesso!"
+        message = "Upload e validação do arquivo CSV realizados com sucesso!"
+
+        # Verifica se o arquivo tem extensão .csv
+        if not file.filename.endswith(".csv"):
+            return jsonify({"error": "O arquivo deve estar com a extensão .csv."}), 400
 
         df = pd.read_csv(file)
 

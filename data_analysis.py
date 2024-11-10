@@ -96,13 +96,6 @@ def upload_csv():
     # df = process_csv(file)  # Aqui será onde trabalharemos os dados
     # data_preview = df.head().to_dict()
 
-    # return jsonify(
-    #     {
-    #         # "data_preview": data_preview,
-    #         "message": "Upload e processamento realizados com sucesso!",
-    #     }
-    # ), 200
-
     return validation_response
 
 
