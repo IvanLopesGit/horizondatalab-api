@@ -1,7 +1,5 @@
 import pandas as pd
-from flask import Flask, jsonify, request
-
-from analysis.identifier import process_dataframe
+from flask import jsonify
 
 
 # Função para carregar o arquivo CSV
@@ -62,45 +60,3 @@ def validate_data(df):
 
     except Exception as e:
         return jsonify({"error": f"Erro inesperado na validação: {str(e)}"}), 500
-
-
-# Pipeline inicial[=]
-if __name__ == "__main__":
-    app = Flask(__name__)
-
-    @app.route("/upload", methods=["POST"])
-    def upload_file():
-        if "file" not in request.files:
-            return jsonify({"error": "Nenhum arquivo enviado"}), 400
-
-        file = request.files["file"]
-
-        # Passo 1: Carregar o arquivo
-        df, error = load_data(file)
-        if error:
-            return jsonify({"error": error}), 400
-
-        # Passo 2: Validar os dados
-        validation_response, status_code = validate_data(df)
-
-        if status_code != 200:
-            return validation_response, status_code
-
-        # Passo 3: Identificar colunas e sugerir gráficos
-        try:
-            analysis_result = process_dataframe(df)
-            return jsonify(
-                {
-                    "message": "Arquivo processado com sucesso",
-                    "analysis": analysis_result,
-                }
-            ), 200
-
-        except Exception as e:
-            return jsonify(
-                {
-                    "error": f"Erro durante a análise de identificação de colunas e gráficos: {str(e)}"
-                }
-            ), 500
-
-    app.run(debug=True)

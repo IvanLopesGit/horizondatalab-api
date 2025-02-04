@@ -8,11 +8,10 @@ def identify_columns(df):
     # com base em seus tipos e sugere análise e gráficos
 
     # Args:
-    # df(DataFrame): O DataFrame carregado
+    # df(DataFrame): O DataFrame carregado e, preferencialmente, limpo
 
     # Returns:
-    # dict: Um dicionário com informações das colunas categorizadas
-    # (nome, tipo, sugestão de análise e gráfico)
+    # dict: Um dicionário com informações das colunas categorizadas:
 
     try:
         # Inicialização das estruturas de saída
@@ -22,14 +21,26 @@ def identify_columns(df):
             "datetime": [],
             "boolean": [],
             "null_columns": [],
+            "constant_columns": [],
+            "missing_values": {},
+            "duplicates": 0,
         }
+
+        # Conta valores ausentes por coluna
+        columns_info["missing_values"] = df.isnull().sum().to_dict()
+
+        # Conta número de linhas duplicadas no DataFrame
+        columns_info["duplicates"] = df.duplicated().sum()
 
         # Verifica cada coluna e classifica
         for col in df.columns:
             # Verifica se a coluna é nula ou inválida
-
             if df[col].isnull().all():
                 columns_info["null_columns"].append(col)
+
+            # Verifica se a coluna é constante
+            elif df[col].nunique() == 1:
+                columns_info["constant_columns"].append(col)
 
             # Classifica se a coluna é numérica
             elif pd.api.types.is_numeric_dtype(df[col]):
@@ -110,7 +121,7 @@ def suggest_lux_charts(df):
         raise ValueError(f"Erro na sugestão de gráficos: {str(e)}") from e
 
 
-def process_dataframe(df, pandas_profile_path="report.html"):
+def process_dataframe(df):
     # Realiza todas as etapas de identificação e análise automática em um DataFrame
 
     # Args:
@@ -125,7 +136,7 @@ def process_dataframe(df, pandas_profile_path="report.html"):
         columns_info = identify_columns(df)
 
         # Etapa 2: Gerar relatório do Pandas Profiling
-        profile_path = generate_pandas_profile(df, output_path=pandas_profile_path)
+        profile_path = generate_pandas_profile(df)
 
         # Etapa 3: Sugerir gráficos com lux
         chart_suggestions = suggest_lux_charts(df)
