@@ -9,7 +9,7 @@ def handle_missing_values(df: pd.DataFrame) -> pd.DataFrame:
     # Trata valores ausentes no DataFrame substituindo por valores adequados
 
     try:
-        for column in df.coloumns:
+        for column in df.columns:
             if df[column].isnull().sum() > 0:
                 if df[column].dtype in [np.float64, np.int64]:
                     df[column].fillna(df[column].mean(), inplace=True)
@@ -45,7 +45,7 @@ def detect_outliers(df: pd.DataFrame) -> pd.DataFrame:
         df = handle_missing_values(df)
         return df
     except Exception as e:
-        raise ValueError(f"Erro ao detectar e tratar autliers: {str(e)}") from e
+        raise ValueError(f"Erro ao detectar e tratar outliers: {str(e)}") from e
 
 
 def normalize_and_scale(df: pd.DataFrame) -> pd.DataFrame:
@@ -54,7 +54,7 @@ def normalize_and_scale(df: pd.DataFrame) -> pd.DataFrame:
     try:
         numeric_columns = df.select_dtypes(include=[np.number]).columns
         scaler = StandardScaler()
-        df[numeric_columns.columns] = scaler.fit_transform(df[numeric_columns])
+        df[numeric_columns] = scaler.fit_transform(df[numeric_columns])
 
         return df
     except Exception as e:

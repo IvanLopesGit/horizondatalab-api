@@ -1,27 +1,31 @@
 from flask import Blueprint, jsonify, request
 
 from analysis.data_cleaning import clean_data
-from analysis.identifier import process_dataframe
+
+# Importa a função de identificação e funções do AI Agent
+from analysis.identifier import generate_profile_report, process_dataframe
+
+# Funções de processamento
 from analysis.loader import load_data, validate_data
+from utils import convert_numpy
 
 # Criação do blueprint
 routes = Blueprint("routes", __name__)
 
-# Mapeamento de colunas
-COLUMN_MAPPINGS = {
-    "sales": ["sales", "vendas", "venda", "sale"],
-    "stock": ["stock", "inventory", "estoque"],
-    "product": ["product", "item", "produto"],
-}
-
 
 @routes.route("/process", methods=["POST"])
 def process_file():
-    # Processa o arquivo enviado pelo usuário, tentando identificar automaticamente
-    # as colunas e os gráficos possíveis.
+    # Endpoint que processa o arquivo CSV enviado pelo usuário:
+    # 1. Carrega, valida e elimpa o arquivo.
+    # 2. Gera o relatório via ydata-profiling.
+    # 3. Gera o insight automatizado usando AI Agent (LangChain).
+    # 4. Consolida as informações e retorna o JSON para o frontend.
+    # - 'chartData': dados para renderização dos gráficos.
+    # - 'insightText': texto gerado com a análise.
+    # - 'columns': lista de colunas do DataFRame limpa.
 
     try:
-        # Verificar se o arquivo foi enviado
+        # Verifica se o arquivo foi enviado
         if "file" not in request.files:
             return jsonify({"error": "Nenhum arquivo enviado"}), 400
 
@@ -39,23 +43,23 @@ def process_file():
 
         # Etapa 2: Limpeza e preparação dos dados
         df_cleaned = clean_data(df)
-
-        # Etapa 3: Identificar colunas, gerar relatórios e sugerir gráficos
         process_result = process_dataframe(df_cleaned)
+        columns_info = process_result.get("columns_info", df_cleaned.columns.tolist())
 
-        # Se não houver sugestões de gráficos, retornamos para o usuário selecionar
-        if not process_result.get("lux_chart_suggestion"):
-            return jsonify(
-                {
-                    "message": "Nenhum gráfico identificado automaticamente",
-                    "available_columns": df_cleaned.columns.tolist(),
-                }
-            )
+        # Etapa 3: Gerar relatório via ydata-profiling
+        report_dict = generate_profile_report(df_cleaned)
 
-        # Etapa 4: Realizar análise detalhada com base nos gráficos e problemas identificados
-        analysis_result = process_analysis(process_result)
+        # Etapa 4: Gerar o insight automatizado usando AI Agent(LangChain)
+        # insight_text = generate_insight_with_agent(report_dict)
 
-        # Etapa 5: Retornar os resultados consolidados
+        # Etapa 5: Monta e retorna a resposta para o frontend
+
+        analysis_result = {
+            "chartData": convert_numpy(report_dict),
+            # "insightText": insight_text,
+            "colums": convert_numpy(columns_info),
+        }
+
         return jsonify(
             {
                 "message": "Arquivo processado com sucesso",
@@ -64,34 +68,11 @@ def process_file():
         )
 
     except Exception as e:
+        # print("erro detectado", str(e))
+
+        # import traceback
+
+        # traceback.print_exc()
         return jsonify(
             {"error": f"Erro durante o processamento do arquivo: {str(e)}"}
         ), 500
-
-
-def process_analysis(process_result):
-    # Processa as análises com base nos gráficos identificados e informações das colunas
-
-    # Args:
-    # df (DataFrame): DataFrame limpo e validado
-    # process_result (dict): Resultado do processamento inicial contendo colunas, relatórios e sugestões
-
-    # Returns:
-    # dict: Insights, problemas e sugestões baseados nas análises realizadas
-
-    try:
-        # Informações básicas das colunas (já obtidas no process_dataframe)
-        columns_info = process_result.get("columns_info", {})
-
-        # Sugestões de gráficos do Lux (já obtidas no process_dataframe)
-        lux_suggestions = process_result.get("lux_chart_suggestions", {})
-
-        # Consolidar os resultados
-        return {
-            "message": "Análise realizadas com sucesso",
-            "columns": columns_info,
-            "graph_suggestions": lux_suggestions,
-        }
-
-    except Exception as e:
-        raise ValueError(f"Erro no processamento das análises: {str(e)}") from e

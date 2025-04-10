@@ -1,6 +1,7 @@
-import lux
+import json
+
 import pandas as pd
-from pandas_profiling import ProfileReport
+from ydata_profiling import ProfileReport
 
 
 def identify_columns(df):
@@ -66,8 +67,8 @@ def identify_columns(df):
         raise ValueError(f"Erro na identificação de colunas: {str(e)}") from e
 
 
-def generate_pandas_profile(df, output_path="report.html"):
-    # Gera um relatório do Pandas Profiling para explorar os dados
+def generate_profile_report(df):
+    # Gera um relatório do YData Profiling para explorar os dados
 
     # Args:
     # df(DataFrame): O Dataframe carregado
@@ -78,47 +79,14 @@ def generate_pandas_profile(df, output_path="report.html"):
 
     try:
         profile = ProfileReport(df, title="Pandas Profiling Report", explorative=True)
-        profile.to_file(output_path)
-        return output_path
+
+        # Converte para json e depois para dict
+        report_json = profile.to_json()
+        report_dict = json.loads(report_json)
+        return report_dict
 
     except Exception as e:
         raise ValueError(f"Erro na geração do relatório: {str(e)}") from e
-
-
-def suggest_lux_charts(df):
-    # Gera sugestões de gráficos usando Lux
-
-    # Args:
-    # df(DataFrame): P Dataframe carregado
-
-    # Returns:
-    # dict: Dicionário com os gráficos sugeridos pelo Lux
-
-    try:
-        # Ativa o modo de sugestão do Lux
-        lux.config.default_display = "lux"
-
-        # Coleta as sugestões
-        recommendations = df.recommendation
-
-        if not recommendations:
-            raise ValueError("Nenhuma sugestão de gráfico disponível.")
-
-        suggested_charts = {}
-
-        for action, charts in recommendations.items():
-            suggested_charts[action] = [
-                {
-                    "description": viz.description,
-                    "columns": [str(intent) for intent in viz.intent],
-                }
-                for viz in charts
-            ]
-
-        return suggested_charts
-
-    except Exception as e:
-        raise ValueError(f"Erro na sugestão de gráficos: {str(e)}") from e
 
 
 def process_dataframe(df):
@@ -136,16 +104,12 @@ def process_dataframe(df):
         columns_info = identify_columns(df)
 
         # Etapa 2: Gerar relatório do Pandas Profiling
-        profile_path = generate_pandas_profile(df)
-
-        # Etapa 3: Sugerir gráficos com lux
-        chart_suggestions = suggest_lux_charts(df)
+        profile_path = generate_profile_report(df)
 
         # Retorno consolidado
         return {
             "columns_info": columns_info,
             "pandas_profile_repot": profile_path,
-            "lux_chart_suggestion": chart_suggestions,
         }
 
     except Exception as e:
