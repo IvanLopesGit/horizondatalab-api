@@ -1,12 +1,14 @@
 from flask import Blueprint, jsonify, request
 
+from analysis.ai_agent import generate_insight_with_agent
 from analysis.data_cleaning import clean_data
 
 # Importa a função de identificação e funções do AI Agent
-from analysis.identifier import generate_profile_report, process_dataframe
+from analysis.identifier import generate_profile_report
 
 # Funções de processamento
 from analysis.loader import load_data, validate_data
+from analysis.parser import parse_insights_and_prepare_output
 from utils import convert_numpy
 
 # Criação do blueprint
@@ -43,27 +45,24 @@ def process_file():
 
         # Etapa 2: Limpeza e preparação dos dados
         df_cleaned = clean_data(df)
-        process_result = process_dataframe(df_cleaned)
-        columns_info = process_result.get("columns_info", df_cleaned.columns.tolist())
+        # process_result = process_dataframe(df_cleaned)
+        # columns_info = process_result.get("columns_info", df_cleaned.columns.tolist())
 
         # Etapa 3: Gerar relatório via ydata-profiling
         report_dict = generate_profile_report(df_cleaned)
 
-        # Etapa 4: Gerar o insight automatizado usando AI Agent(LangChain)
-        # insight_text = generate_insight_with_agent(report_dict)
+        # Etapa 4: Gerar o insight automatizado usando AI Agent(Llama)
+        insight_text = generate_insight_with_agent(report_dict)
 
         # Etapa 5: Monta e retorna a resposta para o frontend
-
-        analysis_result = {
-            "chartData": convert_numpy(report_dict),
-            # "insightText": insight_text,
-            "colums": convert_numpy(columns_info),
-        }
+        parsed_result = parse_insights_and_prepare_output(
+            insight_text, convert_numpy(report_dict), df_cleaned
+        )
 
         return jsonify(
             {
                 "message": "Arquivo processado com sucesso",
-                "data": analysis_result,
+                "data": parsed_result,
             }
         )
 
